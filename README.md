@@ -13,6 +13,9 @@ pip install flask-login
 
 pip3 install flask_wtf
 
+pip install opencv-contrib-python
+
+pip install imutils
 
 # how to start
 in root directory of project type:

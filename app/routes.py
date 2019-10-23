@@ -1,15 +1,23 @@
-from flask import render_template, flash, redirect, url_for, request, current_app
+import threading
+
+from flask import render_template, flash, redirect, url_for, request, current_app, Response
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
+
 from app import app, db
 from app.forms import LoginForm, RegistrationForm
 from app.models import User
-
 from app.digipot import Speed_Control
+from app.camera import Camera
 
 import atexit, json
 
+
+
+# instantiate Speed_Control object
 speed_control = Speed_Control()
+
+
 
 @app.route('/')
 @app.route('/index')
@@ -37,7 +45,8 @@ def worker():
 
 		return sendStatus()
 
-	return "Invalid Request";
+	return "Invalid Request"
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -62,6 +71,7 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+
 @app.route('/register.html', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -77,10 +87,11 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 
-
-
-
-
+cam = Camera()
+@app.route('/video_feed')
+def video_feed():
+	return Response(cam.frames(),
+                    mimetype = "multipart/x-mixed-replace; boundary=frame")
 
 
 # returns a json string with status values
@@ -95,13 +106,16 @@ def sendStatus():
 
 	return json.dumps(status)
 
+
 def setSpeed(inputSpeed):
 	global current_app
 	current_app.config['SPEED'] = inputSpeed
 	speed_control.speed = inputSpeed
 
-def cleanUp():
+
+def on_exit():
 	speed_control.cleanup()
+	cam.stop()
 
 
-atexit.register(cleanUp)
+atexit.register(on_exit)
